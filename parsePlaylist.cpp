@@ -82,17 +82,22 @@ class MediaRendition {
         if (!attributes.at("GROUP-ID").empty()) {
             groupID = attributes["GROUP-ID"];
         }
+
+        if (!attributes.at("NAME").empty()) {
+            name = attributes["NAME"];
+        }
     }
 
+    // getters for required 
     public: string getGroupID(){
             return groupID;
 
     }
 
+    public: string getName(){
+            return name;
 
-
-
-    // getters for required 
+    }
 
 };
 
@@ -127,7 +132,7 @@ class masterPlaylist {
     bool independentSegs;
     // structure to hold all master attr Hashmap<String, Hashmap<String, String>>
     // structure to hold all newMedia renditions List of <MediaRendition>
-    map<string, MediaRendition> renditions;
+    vector<MediaRendition> renditions;
     // structure to hold all rendition variants List of <Variant>
 
     // read in file line by line starting with #
@@ -159,9 +164,8 @@ class masterPlaylist {
                 {
                     // cout << "newMedia type" << endl;
                     MediaRendition med;
-                    med.Parse(newMedia);
-                    cout << med.getGroupID() << endl;
-                    //renditions[] = med;
+                    med.Parse(newMedia);        // cout << med.getGroupID() << endl;
+                    renditions.push_back(med);
 
                 } else if ((index = newMedia.find("#EXT-X-STREAM-INF", 0)) != string::npos)
                 {
@@ -179,6 +183,10 @@ class masterPlaylist {
             }
         }
 
+        for (auto &x: renditions) {
+            cout << x.getGroupID() << endl;
+        }
+        
          return 0;
     }
 
