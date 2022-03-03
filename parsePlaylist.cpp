@@ -27,9 +27,10 @@ using namespace std;
 */
 class mediaRendition {
     map<string, string> attributes;
-    enum Type {AUDIO, VIDEO, SUBTITLES, CAPTIONS};
     string groupID;
     string name;
+    string type;
+    // set uRI
 
     // func: take in line string & parse for attributes
     public: int Parse(string newLine) {
@@ -87,12 +88,15 @@ class mediaRendition {
             name = attributes["NAME"];
         }
 
-        // set TYPE
+        if (!attributes.at("TYPE").empty()) {
+            type = attributes["TYPE"];
+        }
     }
 
     // getters for required 
     public: string getGroupID() { return groupID;}
     public: string getName() { return name; }
+    public: string getType() { return type; }
 
 };
 
@@ -102,9 +106,12 @@ class mediaRendition {
 */
 class mediaVariant {
     map<string, string> attributes;
-    enum Type {AUDIO, VIDEO, SUBTITLES, CAPTIONS};      // if enum Type Key present must match some GroupID present
+    string types[4] = {"AUDIO", "VIDEO", "SUBTITLES", "CAPTIONS"};
     string uri;
-    string bandwidth; 
+    int bandwidth;
+    public: string type;
+    public: string typeID;
+
 
     // func: take in line string & parse for attributes
     public: int Parse(string newLine) {
@@ -159,13 +166,25 @@ class mediaVariant {
         }
 
         if (!attributes.at("BANDWIDTH").empty()) {
-            bandwidth = attributes["BANDWIDTH"];
+            bandwidth = stoi(attributes["BANDWIDTH"]);
         }
+
+        setTypeID();
+    }
+
+    int setTypeID() {
+        for (string key : types) {
+            if (attributes.count(key) != 0) {
+                type = key;
+                typeID = attributes.at(key);
+            }
+        }
+        return 0;
     }
 
      // getters for required 
     public: string getURI() { return uri; }
-    public: string getBandwidth() { return bandwidth; }
+    public: int getBandwidth() { return bandwidth; }
 
 };
 
@@ -230,7 +249,7 @@ class masterPlaylist {
                     // set variant instance
                     mediaVariant var;
                     var.Parse(newMedia);
-                    variants.push_back(var);
+                    // variants.push_back(var);
 
                 } else {
                     // global variables
@@ -242,7 +261,7 @@ class masterPlaylist {
 
     int getRenditions() {
          for (auto &x: renditions) {
-            cout << x.getGroupID() << endl;
+            cout << x.getType() << endl;
         }
         return 0;
     }
@@ -250,8 +269,23 @@ class masterPlaylist {
     int getVariants() {
          for (auto &x: variants) {
             cout << x.getURI() << endl;
+            // cout << x.type << ": " << x.typeID << endl;
         }
         return 0;
+    }
+
+    int adapt(int bitrate) {
+        // match given bitrate with avaliable variant bandwidth
+        for (auto &x: variants) {
+            if (x.getBandwidth() == bitrate) {
+                for (auto &y: renditions) {
+                    // check groupID
+                    if (y.getGroupID() == x.typeID) {
+                        cout << "issa match: " << y.getGroupID() << endl;
+                    }
+                }
+            }
+        }
     }
 
 };
@@ -260,8 +294,9 @@ class masterPlaylist {
 int main() {
     masterPlaylist MP;               // Create instance of masterPlaylist
     MP.readFile("master.m3u8");      // Set input file
-    MP.getRenditions();
-    MP.getVariants();
+    //MP.getRenditions();
+    //MP.getVariants();
+    MP.adapt(2312764);
 
    return 0;
 }
