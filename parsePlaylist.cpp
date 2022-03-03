@@ -30,7 +30,7 @@ class mediaRendition {
     string groupID;
     string name;
     string type;
-    // set uRI
+    public: string uri;
 
     // func: take in line string & parse for attributes
     public: int Parse(string newLine) {
@@ -62,8 +62,8 @@ class mediaRendition {
             }
         }
         setRequired();
-        cout << "Attritubes for this Media Rendition are set." << endl;
-        //displayAttr();
+        // cout << "Attritubes for this Media Rendition are set." << endl;
+        // displayAttr();
         
         return 0;
    }
@@ -90,6 +90,10 @@ class mediaRendition {
 
         if (!attributes.at("TYPE").empty()) {
             type = attributes["TYPE"];
+        }
+
+        if (!attributes.at("URI").empty()) {
+            uri = attributes["URI"];
         }
     }
 
@@ -143,8 +147,8 @@ class mediaVariant {
             }
         }
         setRequired();
-        cout << "Attritubes for this Media Variant are set." << endl;
-        //displayAttr();
+        // cout << "Attritubes for this Media Variant are set." << endl;
+        // displayAttr();
         
         return 0;
    }
@@ -276,12 +280,18 @@ class masterPlaylist {
 
     int adapt(int bitrate) {
         // match given bitrate with avaliable variant bandwidth
-        for (auto &x: variants) {
-            if (x.getBandwidth() == bitrate) {
-                for (auto &y: renditions) {
+        for (auto &var: variants) {
+            if (var.getBandwidth() == bitrate) {
+                for (auto &ren: renditions) {
                     // check groupID
-                    if (y.getGroupID() == x.typeID) {
-                        cout << "issa match: " << y.getGroupID() << endl;
+                    if (ren.getGroupID() == var.typeID) {
+                             cout << "match found @ " 
+                                << bitrate
+                                << " variant: " 
+                                << var.getURI()  
+                                << " rendition: " 
+                                << ren.uri  
+                                << endl;
                     }
                 }
             }
@@ -294,9 +304,9 @@ class masterPlaylist {
 int main() {
     masterPlaylist MP;               // Create instance of masterPlaylist
     MP.readFile("master.m3u8");      // Set input file
-    //MP.getRenditions();
-    //MP.getVariants();
-    MP.adapt(2312764);
+    // MP.getRenditions();
+    // MP.getVariants();
+    MP.adapt(3918799);
 
    return 0;
 }
