@@ -25,7 +25,7 @@ using namespace std;
 /*
  * instance of each newMedia manifestrendition EXT-X-MEDIA
 */
-class MediaRendition {
+class mediaRendition {
     map<string, string> attributes;
     enum Type {AUDIO, VIDEO, SUBTITLES, CAPTIONS};
     string groupID;
@@ -44,8 +44,8 @@ class MediaRendition {
         // create key:value pairs for each "=" delimiter within
         for (auto &entry: out) {
             int index;
-            if ((index = entry.find("#EXT-X-MEDIA", 0)) != string::npos) {
-                attributes["TAG"] = "EXT-X-MEDIA";
+            if ((index = entry.find("#", 0)) != string::npos) {
+                attributes["TAG"] = entry;
 
             } else {                            // parse attrs & add to map
                 vector<string> output(
@@ -62,7 +62,7 @@ class MediaRendition {
         }
         setRequired();
         cout << "Attritubes for this Media Rendition are set." << endl;
-        // displayAttr();
+        displayAttr();
         
         return 0;
    }
@@ -102,22 +102,71 @@ class MediaRendition {
 };
 
 /*
- * instance of each variant stream 
+ * instance of each mediavariant stream 
  * EXT-X-STREAM-INF | EXT-X-I-FRAME-STREAM-INF
 */
-class Variant {
-    // Hashmap attributes = Hashmap<String, String>;
-    string URI;
-    int Bandwidth; 
+class mediaVariant {
+    map<string, string> attributes;
+    string uri;
+    int bandwidth; 
     // if enum TYpe Key present must match some GroupID present
 
      // func: take in line string & parse for attributes
-    // Hashmap Parse(string newLine) {
-        // parse by "," delimiter excluding CODECS ","
-        // create key:value pairs for each "=" within
+    public: int Parse(string newLine) {
+       
+        // parse by "," delimiter from begin to end of newLine
+        regex regex(",(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)|:"), regex2("=");
+        vector<string> out(
+                    sregex_token_iterator(newLine.begin(), newLine.end(), regex, -1),
+                    sregex_token_iterator()
+                    );
+ 
+        // create key:value pairs for each "=" delimiter withsin
+        for (auto &entry: out) {
+            int index;
+            if ((index = entry.find("#", 0)) != string::npos) {
+                attributes["TAG"] = entry;
 
-   // }
+            } else {                            // parse attrs & add to map
+                vector<string> output(
+                    sregex_token_iterator(entry.begin(), entry.end(), regex2, -1),
+                    sregex_token_iterator()
+                    );
 
+                if (output.size() == 2) {
+                    string arr[output.size()];
+                    copy(output.begin(), output.end(), arr);
+                    attributes[arr[0]] = arr[1];
+                }
+            }
+        }
+        //setRequired();
+        cout << "Attritubes for this Media Variant are set." << endl;
+        displayAttr();
+        
+        return 0;
+   }
+
+   private: int displayAttr() {
+        for (auto &x: attributes) {
+            cout << x.first    // string (key)
+                << ':'
+                << x.second   // string's value 
+                << endl;
+        }
+        cout << endl;
+        return 0;
+    }
+
+     int setRequired() {
+        if (!attributes.at("URI").empty()) {
+            uri = attributes["URI"];
+        }
+
+        if (!attributes.at("BANDWIDTH").empty()) {
+            bandwidth = attributes["BANDWIDTH"].toInt;
+        }
+    }
 
 };
 
@@ -131,9 +180,10 @@ class masterPlaylist {
     bool isValidMaster;
     bool independentSegs;
     // structure to hold all master attr Hashmap<String, Hashmap<String, String>>
-    // structure to hold all newMedia renditions List of <MediaRendition>
-    vector<MediaRendition> renditions;
-    // structure to hold all rendition variants List of <Variant>
+    // structure to hold all newMedia renditions List of <mediaRendition>
+    vector<mediaRendition> renditions;
+    // structure to hold all rendition mediavariants List of <mediaVariant>
+    vector<mediaVariant> variants;
 
     // read in file line by line starting with #
     // check & ignore blank lines & whitespace
@@ -145,14 +195,16 @@ class masterPlaylist {
         //cout << "Reading from the file" << endl; 
         getline(fin, nextLine);
         if (nextLine == "#EXTM3U") {
-            isPlaylist = true;
-            //cout << "is playlist" << endl;
+            isPlaylist = true;              //cout << "is playlist" << endl;
+            nextLine = "";
+        } else {
+            isPlaylist = false;
         }
 
         // validate Master plylist rules
-        // Global vs Instance Tags ":"
-        while(fin.good()) {
-            nextLine = "";
+        // while(isPlaylist & fin.good()) {
+        int i = 0;
+        while(i<5) {
             getline(fin, nextLine);
             int pos = 0;
         
@@ -162,46 +214,52 @@ class masterPlaylist {
                 // Use Tag to create & set Rendition or Variant instance
                 if ((index = newMedia.find("#EXT-X-MEDIA", 0)) != string::npos)
                 {
-                    // cout << "newMedia type" << endl;
-                    MediaRendition med;
+                    mediaRendition med;
                     med.Parse(newMedia);        // cout << med.getGroupID() << endl;
                     renditions.push_back(med);
 
-                } else if ((index = newMedia.find("#EXT-X-STREAM-INF", 0)) != string::npos)
-                {
+                } else if ((index = newMedia.find("#EXT-X-STREAM-INF", 0)) != string::npos) {
                     // cout << "var type" << endl;
+                    string next;
+                    getline(fin, next);
+                    string uri = next;
 
-                } else if (((index = newMedia.find("#EXT-X-I-FRAME-STREAM-INF", 0)) != string::npos))
-                {
+                    if(uri.find(".m3u8") != string::npos) {
+                        newMedia = newMedia + ",URI=" + uri;
+                        // cout << newMedia << endl;
+                    } 
+
+                    mediaVariant var;
+                    var.Parse(newMedia);        // cout << med.getGroupID() << endl;
+                    variants.push_back(var);
+
+                } else if (((index = newMedia.find("#EXT-X-I-FRAME-STREAM-INF", 0)) != string::npos)) {
                     // cout << "frame type" << endl;
                     // cout << nextLine << endl;
 
                 } else {
                     // cout << nextLine << endl;
                 }
-    
+                i++;
             }
+            //nextLine = "";
         }
-
-        for (auto &x: renditions) {
-            cout << x.getGroupID() << endl;
-        }
-        
          return 0;
     }
 
-        
-        // Parse using specific instance
-        // add instance to correct 
-    
-        //list MediaList(0).get(groupID) | MediaList(0).getAttr.at(ATTR)=VALUE
+    int getRenditions() {
+         for (auto &x: renditions) {
+            cout << x.getGroupID() << endl;
+        }
+        return 0;
+    }
+
 };
 
 // main() is where program execution begins.
 int main() {
     masterPlaylist MP;               // Create instance of masterPlaylist
     MP.readFile("master.m3u8");      // Set input file
-
 
    return 0;
 }
