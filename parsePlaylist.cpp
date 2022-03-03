@@ -62,7 +62,7 @@ class mediaRendition {
         }
         setRequired();
         cout << "Attritubes for this Media Rendition are set." << endl;
-        displayAttr();
+        //displayAttr();
         
         return 0;
    }
@@ -86,18 +86,13 @@ class mediaRendition {
         if (!attributes.at("NAME").empty()) {
             name = attributes["NAME"];
         }
+
+        // set TYPE
     }
 
     // getters for required 
-    public: string getGroupID(){
-            return groupID;
-
-    }
-
-    public: string getName(){
-            return name;
-
-    }
+    public: string getGroupID() { return groupID;}
+    public: string getName() { return name; }
 
 };
 
@@ -107,11 +102,11 @@ class mediaRendition {
 */
 class mediaVariant {
     map<string, string> attributes;
+    enum Type {AUDIO, VIDEO, SUBTITLES, CAPTIONS};      // if enum Type Key present must match some GroupID present
     string uri;
-    int bandwidth; 
-    // if enum TYpe Key present must match some GroupID present
+    string bandwidth; 
 
-     // func: take in line string & parse for attributes
+    // func: take in line string & parse for attributes
     public: int Parse(string newLine) {
        
         // parse by "," delimiter from begin to end of newLine
@@ -140,14 +135,14 @@ class mediaVariant {
                 }
             }
         }
-        //setRequired();
+        setRequired();
         cout << "Attritubes for this Media Variant are set." << endl;
-        displayAttr();
+        //displayAttr();
         
         return 0;
    }
 
-   private: int displayAttr() {
+    private: int displayAttr() {
         for (auto &x: attributes) {
             cout << x.first    // string (key)
                 << ':'
@@ -158,15 +153,19 @@ class mediaVariant {
         return 0;
     }
 
-     int setRequired() {
+    int setRequired() {
         if (!attributes.at("URI").empty()) {
             uri = attributes["URI"];
         }
 
         if (!attributes.at("BANDWIDTH").empty()) {
-            bandwidth = attributes["BANDWIDTH"].toInt;
+            bandwidth = attributes["BANDWIDTH"];
         }
     }
+
+     // getters for required 
+    public: string getURI() { return uri; }
+    public: string getBandwidth() { return bandwidth; }
 
 };
 
@@ -180,13 +179,10 @@ class masterPlaylist {
     bool isValidMaster;
     bool independentSegs;
     // structure to hold all master attr Hashmap<String, Hashmap<String, String>>
-    // structure to hold all newMedia renditions List of <mediaRendition>
-    vector<mediaRendition> renditions;
-    // structure to hold all rendition mediavariants List of <mediaVariant>
-    vector<mediaVariant> variants;
+    vector<mediaRendition> renditions;  // structure to hold all newMedia renditions List of <mediaRendition>
+    vector<mediaVariant> variants;      // structure to hold all rendition mediavariants List of <mediaVariant>
 
     // read in file line by line starting with #
-    // check & ignore blank lines & whitespace
     public: int readFile(string filename) {
         ifstream fin;
         fin.open(filename);
@@ -202,9 +198,7 @@ class masterPlaylist {
         }
 
         // validate Master plylist rules
-        // while(isPlaylist & fin.good()) {
-        int i = 0;
-        while(i<5) {
+        while(isPlaylist & fin.good()) {
             getline(fin, nextLine);
             int pos = 0;
         
@@ -212,37 +206,36 @@ class masterPlaylist {
                 string newMedia = nextLine;
                 int index;
                 // Use Tag to create & set Rendition or Variant instance
-                if ((index = newMedia.find("#EXT-X-MEDIA", 0)) != string::npos)
-                {
+                if ((index = newMedia.find("#EXT-X-MEDIA", 0)) != string::npos) {
+                    // set rendition instance
                     mediaRendition med;
-                    med.Parse(newMedia);        // cout << med.getGroupID() << endl;
+                    med.Parse(newMedia);
                     renditions.push_back(med);
 
                 } else if ((index = newMedia.find("#EXT-X-STREAM-INF", 0)) != string::npos) {
-                    // cout << "var type" << endl;
+                    // get URI
                     string next;
                     getline(fin, next);
                     string uri = next;
-
                     if(uri.find(".m3u8") != string::npos) {
                         newMedia = newMedia + ",URI=" + uri;
-                        // cout << newMedia << endl;
                     } 
 
+                    // set variant instance
                     mediaVariant var;
-                    var.Parse(newMedia);        // cout << med.getGroupID() << endl;
+                    var.Parse(newMedia);
                     variants.push_back(var);
 
                 } else if (((index = newMedia.find("#EXT-X-I-FRAME-STREAM-INF", 0)) != string::npos)) {
-                    // cout << "frame type" << endl;
-                    // cout << nextLine << endl;
+                    // set variant instance
+                    mediaVariant var;
+                    var.Parse(newMedia);
+                    variants.push_back(var);
 
                 } else {
-                    // cout << nextLine << endl;
+                    // global variables
                 }
-                i++;
             }
-            //nextLine = "";
         }
          return 0;
     }
@@ -254,12 +247,21 @@ class masterPlaylist {
         return 0;
     }
 
+    int getVariants() {
+         for (auto &x: variants) {
+            cout << x.getURI() << endl;
+        }
+        return 0;
+    }
+
 };
 
 // main() is where program execution begins.
 int main() {
     masterPlaylist MP;               // Create instance of masterPlaylist
     MP.readFile("master.m3u8");      // Set input file
+    MP.getRenditions();
+    MP.getVariants();
 
    return 0;
 }
