@@ -34,7 +34,7 @@ class mediaRendition {
     string tag;
 
     // func: take in line string & parse for attributes
-    public: int Parse(string newLine) {
+    public: void Parse(string newLine) {
        
         // parse by "," delimiter from begin to end of newLine
         regex regex("[:|,]"), regex2("=");
@@ -66,11 +66,9 @@ class mediaRendition {
         setRequired();
         // cout << "Attritubes for this Media Rendition are set." << endl;
         // displayAttr();
-        
-        return 0;
    }
 
-    private: int displayAttr() {
+    public: void displayAttr() {
         for (auto &x: attributes) {
             cout << x.first    // string (key)
                 << ':'
@@ -78,10 +76,9 @@ class mediaRendition {
                 << endl;
         }
         cout << endl;
-        return 0;
     }
 
-    int setRequired() {
+    void setRequired() {
         if (!attributes.at("GROUP-ID").empty()) {
             groupID = attributes["GROUP-ID"];
         }
@@ -116,13 +113,13 @@ class mediaVariant {
     map<string, string> attributes;
     string types[4] = {"AUDIO", "VIDEO", "SUBTITLES", "CAPTIONS"};
     string uri;
-    int bandwidth;
     string type;
     string typeID;
     string tag;
+    int bandwidth;
 
     // func: take in line string & parse for attributes
-    public: int Parse(string newLine) {
+    public: void Parse(string newLine) {
        
         // parse by "," delimiter from begin to end of newLine
         regex regex(",(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)|:"), regex2("=");
@@ -154,11 +151,10 @@ class mediaVariant {
         setRequired();
         // cout << "Attritubes for this Media Variant are set." << endl;
         // displayAttr();
-        
-        return 0;
+
    }
 
-    private: int displayAttr() {
+    public: void displayAttr() {
         for (auto &x: attributes) {
             cout << x.first    // string (key)
                 << ':'
@@ -166,10 +162,9 @@ class mediaVariant {
                 << endl;
         }
         cout << endl;
-        return 0;
     }
 
-    int setRequired() {
+    void setRequired() {
         if (!attributes.at("URI").empty()) {
             uri = attributes["URI"];
         }
@@ -181,14 +176,13 @@ class mediaVariant {
         setTypeID();
     }
 
-    int setTypeID() {
+    void setTypeID() {
         for (string key : types) {
             if (attributes.count(key) != 0) {
                 type = key;
                 typeID = attributes.at(key);
             }
         }
-        return 0;
     }
 
      // getters for required 
@@ -211,9 +205,10 @@ class masterPlaylist {
     // structure to hold all master attr map<String Tag, map<String, String>>
     vector<mediaRendition> renditions;  // structure to hold all newMedia renditions List of <mediaRendition>
     vector<mediaVariant> variants;      // structure to hold all rendition mediavariants List of <mediaVariant>
+    vector<mediaVariant> iframes;
 
     // read in file line by line starting with #
-    public: int readFile(string filename) {
+    public: void readFile(string filename) {
         ifstream fileReader;
         fileReader.open(filename);
         string nextLine;
@@ -260,59 +255,71 @@ class masterPlaylist {
                     // set variant instance
                     mediaVariant var;
                     var.Parse(newMedia);
-                    variants.push_back(var); 
+                    iframes.push_back(var); 
 
                 } else {
                     // global variables
                 }
             }
         }
-         return 0;
     }
 
-    int getRenditions() {
+    vector<mediaRendition> getRenditions() {
          for (auto &x: renditions) {
             cout << x.getTag() << " - " << x.getGroupID() << endl;
         }
-        return 0;
+        return renditions;
     }
 
-    int getVariants() {
+    vector<mediaVariant> getVariants() {
          for (auto &x: variants) {
             cout << x.getTag() << " - " << x.getTypeID() << ": " << x.getURI() << endl;
         }
-        return 0;
+        return variants;
     }
 
-    int adapt(int bitrate) {
+    vector<mediaVariant> getFrames() {
+         for (auto &x: iframes) {
+            cout << x.getTag() << ": " << x.getURI() << endl;
+        }
+        return iframes;
+    }
+
+    void adapt(int bitrate) {
         // match given bitrate with avaliable variant bandwidth
+        bool found = false;
         for (auto &var: variants) {
             if (var.getBandwidth() == bitrate) {
                 for (auto &ren: renditions) {
                     // check groupID
                     if (ren.getGroupID() == var.getTypeID()) {
+                        found = true;
                              cout << endl << "match found @ " 
                                 << bitrate
                                 << " mbps: Variant - " 
                                 << var.getURI()  
                                 << " using Rendition - " 
                                 << ren.getGroupID()  
-                                << endl << endl;
-                    }
-                }
-            }
-        }
+                                << endl << endl;  }}}} 
+        if (!found) { cout << "No match found." << endl; }
+
     }
 
 };
 
 // main() is where program execution begins.
 int main() {
-    masterPlaylist MP;               // Create instance of masterPlaylist
-    MP.readFile("master.m3u8");      // Set input file
-    MP.getRenditions();
-    MP.getVariants();
-    MP.adapt(3918799);
+
+    masterPlaylist MP;              // Create instance of masterPlaylist
+    MP.readFile("master.m3u8");     // Set input file
+    MP.getRenditions();             // List all renditions
+    MP.getFrames();                 // List all iFrames
+    MP.getVariants();               // List all variants
+    MP.adapt(15811232);             // Find variants for given bandwidth
+
+    // vector<mediaVariant> V;
+    // V = MP.getFrames();
+    // V.back().displayAttr();
 
    return 0;
 }
