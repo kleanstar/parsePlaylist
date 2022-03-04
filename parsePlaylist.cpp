@@ -30,7 +30,8 @@ class mediaRendition {
     string groupID;
     string name;
     string type;
-    public: string uri;
+    string uri;
+    string tag;
 
     // func: take in line string & parse for attributes
     public: int Parse(string newLine) {
@@ -47,6 +48,7 @@ class mediaRendition {
             int index;
             if ((index = entry.find("#", 0)) != string::npos) {
                 attributes["TAG"] = entry;
+                tag = entry;
 
             } else {                            // parse attrs & add to map
                 vector<string> output(
@@ -101,6 +103,8 @@ class mediaRendition {
     public: string getGroupID() { return groupID;}
     public: string getName() { return name; }
     public: string getType() { return type; }
+    public: string getURI() { return uri; }
+    public: string getTag() { return tag; }
 
 };
 
@@ -113,9 +117,9 @@ class mediaVariant {
     string types[4] = {"AUDIO", "VIDEO", "SUBTITLES", "CAPTIONS"};
     string uri;
     int bandwidth;
-    public: string type;
-    public: string typeID;
-
+    string type;
+    string typeID;
+    string tag;
 
     // func: take in line string & parse for attributes
     public: int Parse(string newLine) {
@@ -132,6 +136,7 @@ class mediaVariant {
             int index;
             if ((index = entry.find("#", 0)) != string::npos) {
                 attributes["TAG"] = entry;
+                tag = entry;
 
             } else {                            // parse attrs & add to map
                 vector<string> output(
@@ -187,8 +192,10 @@ class mediaVariant {
     }
 
      // getters for required 
-    public: string getURI() { return uri; }
     public: int getBandwidth() { return bandwidth; }
+    public: string getTypeID() { return typeID; }
+    public: string getURI() { return uri; }
+    public: string getTag() { return tag; }
 
 };
 
@@ -201,18 +208,18 @@ class masterPlaylist {
     bool isPlaylist;
     bool isValidMaster;
     bool independentSegs;
-    // structure to hold all master attr Hashmap<String, Hashmap<String, String>>
+    // structure to hold all master attr map<String Tag, map<String, String>>
     vector<mediaRendition> renditions;  // structure to hold all newMedia renditions List of <mediaRendition>
     vector<mediaVariant> variants;      // structure to hold all rendition mediavariants List of <mediaVariant>
 
     // read in file line by line starting with #
     public: int readFile(string filename) {
-        ifstream fin;
-        fin.open(filename);
+        ifstream fileReader;
+        fileReader.open(filename);
         string nextLine;
 
         //cout << "Reading from the file" << endl; 
-        getline(fin, nextLine);
+        getline(fileReader, nextLine);
         if (nextLine == "#EXTM3U") {
             isPlaylist = true;              //cout << "is playlist" << endl;
             nextLine = "";
@@ -221,8 +228,8 @@ class masterPlaylist {
         }
 
         // validate Master plylist rules
-        while(isPlaylist & fin.good()) {
-            getline(fin, nextLine);
+        while(isPlaylist & fileReader.good()) {
+            getline(fileReader, nextLine);
             int pos = 0;
         
             if (!nextLine.empty()) {
@@ -231,14 +238,14 @@ class masterPlaylist {
                 // Use Tag to create & set Rendition or Variant instance
                 if ((index = newMedia.find("#EXT-X-MEDIA", 0)) != string::npos) {
                     // set rendition instance
-                    mediaRendition med;
-                    med.Parse(newMedia);
-                    renditions.push_back(med);
+                    mediaRendition media;
+                    media.Parse(newMedia);
+                    renditions.push_back(media);
 
                 } else if ((index = newMedia.find("#EXT-X-STREAM-INF", 0)) != string::npos) {
                     // get URI
                     string next;
-                    getline(fin, next);
+                    getline(fileReader, next);
                     string uri = next;
                     if(uri.find(".m3u8") != string::npos) {
                         newMedia = newMedia + ",URI=" + uri;
@@ -253,7 +260,7 @@ class masterPlaylist {
                     // set variant instance
                     mediaVariant var;
                     var.Parse(newMedia);
-                    // variants.push_back(var);
+                    variants.push_back(var); 
 
                 } else {
                     // global variables
@@ -265,15 +272,14 @@ class masterPlaylist {
 
     int getRenditions() {
          for (auto &x: renditions) {
-            cout << x.getType() << endl;
+            cout << x.getTag() << " - " << x.getGroupID() << endl;
         }
         return 0;
     }
 
     int getVariants() {
          for (auto &x: variants) {
-            cout << x.getURI() << endl;
-            // cout << x.type << ": " << x.typeID << endl;
+            cout << x.getTag() << " - " << x.getTypeID() << ": " << x.getURI() << endl;
         }
         return 0;
     }
@@ -284,14 +290,14 @@ class masterPlaylist {
             if (var.getBandwidth() == bitrate) {
                 for (auto &ren: renditions) {
                     // check groupID
-                    if (ren.getGroupID() == var.typeID) {
-                             cout << "match found @ " 
+                    if (ren.getGroupID() == var.getTypeID()) {
+                             cout << endl << "match found @ " 
                                 << bitrate
-                                << " variant: " 
+                                << " mbps: Variant - " 
                                 << var.getURI()  
-                                << " rendition: " 
-                                << ren.uri  
-                                << endl;
+                                << " using Rendition - " 
+                                << ren.getGroupID()  
+                                << endl << endl;
                     }
                 }
             }
@@ -304,8 +310,8 @@ class masterPlaylist {
 int main() {
     masterPlaylist MP;               // Create instance of masterPlaylist
     MP.readFile("master.m3u8");      // Set input file
-    // MP.getRenditions();
-    // MP.getVariants();
+    MP.getRenditions();
+    MP.getVariants();
     MP.adapt(3918799);
 
    return 0;
